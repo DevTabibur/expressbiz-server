@@ -59,12 +59,10 @@ async function run() {
     });
 
     app.post("/register", async (req, res) => {
-      const name = req.body.registerUser.name;
-      const email = req.body.registerUser.email;
-      const confirmPassword = req.body.registerUser.confirmPassword;
+      const name = req.body.name;
+      const email = req.body.email;
+      const confirmPassword = req.body.confirmPassword;
       const saltRounds = 10;
-
-      // console.log("user register", req.body);
 
       const securePassword = bcrypt.hash(
         confirmPassword,
@@ -77,13 +75,17 @@ async function run() {
           const dataExist = await registerCollection.findOne({
             email: email,
           });
+
           if (dataExist) {
             return res
               .status(300)
               .json({ error: "Email is already exist!", code: 300 });
           } else {
             const result = await registerCollection.insertOne({
-              registerUser: { name, email, password: hashPassword },
+              name,
+              email,
+              password: hashPassword,
+              user: true,
             });
             // console.log('result', result)
             return res.send(result);
@@ -104,7 +106,7 @@ async function run() {
     app.patch("/register/:id", async (req, res) => {
       const id = req.params.id;
       const body = req.body;
-      console.log("first", id, req.body);
+      // console.log("first", id, req.body);
 
       const query = { _id: ObjectId(id) };
       const options = { upsert: true };
@@ -144,17 +146,19 @@ async function run() {
         const userEmail = await registerCollection.findOne({
           email: email,
         });
+
+        // console.log('userEmail', userEmail)
         if (userEmail) {
           const id = userEmail._id;
           // console.log('userEmail', userEmail._id)
           const isMatched = bcrypt.compare(
             password,
-            userEmail.confirmPassword,
+            userEmail.password,
             (err, result) => {
               // console.log("result", result);
               if (result) {
                 // console.log("result", result);
-                res.status(200).send({ id: id, code: 200 });
+                res.status(200).send({ message: "success", id: id, code: 200 });
               } else {
                 res.status(401).send({
                   response: "Unauthorized response, Try again",
@@ -182,6 +186,12 @@ async function run() {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const result = await servicesCollection.findOne(query);
+      res.send(result);
+    });
+
+    app.post("/services", async (req, res) => {
+      // console.log("body services", req.body);
+      const result = await servicesCollection.insertOne(req.body);
       res.send(result);
     });
 
@@ -216,32 +226,34 @@ async function run() {
     });
 
     // 6. user routes
-    app.get("/register", async (req, res) => {
+    app.get("/users", async (req, res) => {
       const result = await usersCollection.find({}).toArray();
       res.send(result);
     });
 
-    app.put("/register/:email", async (req, res) => {
+    app.put("/users/:email", async (req, res) => {
       const email = req.params.email;
+      console.log("email", email);
       const filter = { email: email };
       const user = req.body;
+      console.log("body", req.body);
       const options = { upsert: true };
       const updateDoc = {
         $set: user,
       };
 
-      const result = await usersCollection.updateOne(
-        filter,
-        updateDoc,
-        options
-      );
+      // const result = await usersCollection.updateOne(
+      //   filter,
+      //   updateDoc,
+      //   options
+      // );
 
-      // giving every user jwt token
-      const token = jwt.sign({ email: email }, process.env.JWT_SECRET, {
-        expiresIn: "1h",
-      });
+      // // giving every user jwt token
+      // const token = jwt.sign({ email: email }, process.env.JWT_SECRET, {
+      //   expiresIn: "1h",
+      // });
 
-      res.send({ result, accessToken: token });
+      // res.send({ result, accessToken: token });
     });
 
     // LAST +++++++++++++++++++++++++++++++++++++++++
