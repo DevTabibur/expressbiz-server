@@ -28,7 +28,7 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
-const verifyJWt = (req, res, next) => {
+const verifyJWT = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
     return res.status(401).send({ message: "Unauthorized", code: 401 });
@@ -57,6 +57,18 @@ async function run() {
     const createShippingCollection = client
       .db("expressbiz")
       .collection("createShipping");
+
+    const verifyAdmin = async (req, res, next) => {
+      const requester = req.decoded.email;
+      const requesterAccount = await usersCollection.findOne({
+        email: requester,
+      });
+      if (requesterAccount.role === "admin") {
+        next();
+      } else {
+        res.status(403).send({ message: "forbidden" });
+      }
+    };
 
     // 1.register routes
     app.get("/register", async (req, res) => {
@@ -183,7 +195,7 @@ async function run() {
     });
 
     /// 3. services routes
-    app.get("/services",  async (req, res) => {
+    app.get("/services", async (req, res) => {
       const result = await servicesCollection.find({}).toArray();
       res.send(result);
     });
@@ -195,13 +207,13 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/services", verifyJWt, async (req, res) => {
+    app.post("/services", verifyJWT, async (req, res) => {
       // console.log("body services", req.body);
       const result = await servicesCollection.insertOne(req.body);
       res.send(result);
     });
 
-    app.delete("/services/:id", verifyJWt, async (req, res) => {
+    app.delete("/services/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const result = await servicesCollection.deleteOne(query);
@@ -273,7 +285,7 @@ async function run() {
     });
 
     // 6. user routes
-    app.get("/users", verifyJWt, async (req, res) => {
+    app.get("/users", verifyJWT, async (req, res) => {
       const result = await usersCollection.find({}).toArray();
       res.send(result);
     });
@@ -310,13 +322,13 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/review", async (req, res) => {
+    app.post("/review", verifyJWT, async (req, res) => {
       // console.log("review posted", req.body);
       const result = await reviewCollection.insertOne(req.body);
       res.send(result);
     });
 
-    app.delete("/review/:id", async (req, res) => {
+    app.delete("/review/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const result = await reviewCollection.deleteOne(query);
@@ -339,6 +351,27 @@ async function run() {
       res.send({
         clientSecret: paymentIntent.client_secret,
       });
+    });
+
+    // check admin
+    app.get("/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = await usersCollection.findOne({ email: email });
+      const isAdmin = user.role === "admin";
+      res.send({ admin: isAdmin });
+    });
+
+    // make admin routes
+    app.put("/user/admin/:email", verifyJWT, verifyAdmin, async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+      const updateDoc = {
+        $set: {
+          role: "admin",
+        },
+      };
+      const result = await usersCollection.updateOne(filter, updateDoc);
+      res.send(result);
     });
 
     // LAST +++++++++++++++++++++++++++++++++++++++++
