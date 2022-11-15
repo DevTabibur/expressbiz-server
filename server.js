@@ -284,6 +284,13 @@ async function run() {
       res.send(updateDoc);
     });
 
+    app.delete("/shipping/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await createShippingCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // 6. user routes
     app.get("/users", verifyJWT, async (req, res) => {
       const result = await usersCollection.find({}).toArray();
@@ -336,6 +343,11 @@ async function run() {
     });
 
     // 8. payment routes
+
+    app.get("/payment", async (req, res) => {
+      const result = await paymentCollection.find({}).toArray();
+      res.send(result);
+    });
 
     app.post("/create-payment-intent", async (req, res) => {
       const price = 99;
