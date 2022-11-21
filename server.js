@@ -22,6 +22,7 @@ app.get("/", (req, res) => {
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.hc4xz.mongodb.net/?retryWrites=true&w=majority`;
+
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -60,7 +61,7 @@ async function run() {
 
     const verifyAdmin = async (req, res, next) => {
       const requester = req.decoded.email;
-      const requesterAccount = await usersCollection.findOne({
+      const requesterAccount = await registerCollection.findOne({
         email: requester,
       });
       if (requesterAccount.role === "admin") {
@@ -81,7 +82,6 @@ async function run() {
       const email = req.body.email;
       const confirmPassword = req.body.confirmPassword;
       const saltRounds = 10;
-
       const securePassword = bcrypt.hash(
         confirmPassword,
         saltRounds,
@@ -106,7 +106,13 @@ async function run() {
               user: true,
             });
             // console.log('result', result)
-            return res.send(result);
+
+            // giving every register user a jwt
+            const token = jwt.sign({ email: email }, process.env.JWT_SECRET, {
+              expiresIn: "1h",
+            });
+
+            return res.send({ result, accessToken: token });
           }
         }
       );
@@ -138,6 +144,7 @@ async function run() {
         updateDoc,
         options
       );
+
       res.send(result);
     });
 
@@ -176,7 +183,20 @@ async function run() {
               // console.log("result", result);
               if (result) {
                 // console.log("result", result);
-                res.status(200).send({ message: "success", id: id, code: 200 });
+                // giving every user jwt token
+                const token = jwt.sign(
+                  { email: email },
+                  process.env.JWT_SECRET,
+                  {
+                    expiresIn: "1h",
+                  }
+                );
+                res.status(200).send({
+                  message: "success",
+                  id: id,
+                  code: 200,
+                  accessToken: token,
+                });
               } else {
                 res.status(401).send({
                   response: "Unauthorized response, Try again",
@@ -293,7 +313,7 @@ async function run() {
 
     // 6. user routes
     app.get("/users", verifyJWT, async (req, res) => {
-      const result = await usersCollection.find({}).toArray();
+      const result = await registerCollection.find({}).toArray();
       res.send(result);
     });
 
@@ -308,7 +328,7 @@ async function run() {
         $set: user,
       };
 
-      const result = await usersCollection.updateOne(
+      const result = await registerCollection.updateOne(
         filter,
         updateDoc,
         options
@@ -365,10 +385,10 @@ async function run() {
       });
     });
 
-    // check admin
+    // check admin  for useAdmin hooks
     app.get("/admin/:email", async (req, res) => {
       const email = req.params.email;
-      const user = await usersCollection.findOne({ email: email });
+      const user = await registerCollection.findOne({ email: email });
       const isAdmin = user.role === "admin";
       res.send({ admin: isAdmin });
     });
@@ -382,7 +402,7 @@ async function run() {
           role: "admin",
         },
       };
-      const result = await usersCollection.updateOne(filter, updateDoc);
+      const result = await registerCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
 
