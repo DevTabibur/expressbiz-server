@@ -24,11 +24,10 @@ app.use("/upload", express.static("./upload"));
 
 // define the storage
 const storage = multer.diskStorage({
- 
   destination: (req, file, cb) => {
     cb(null, UPLOADS_FOLDER);
   },
- 
+
   filename: (req, file, cb) => {
     const fileExt = path.extname(file.originalname);
     const fileName =
@@ -48,10 +47,9 @@ const upload = multer({
   // dest: UPLOADS_FOlDER,
   storage: storage,
   limits: {
-    fileSize: 2000000,
+    fileSize: 5000000, // 5mb
   },
 
- 
   fileFilter: (req, file, cb) => {
     // console.log("fileFilter", file, cb);
     if (
@@ -61,13 +59,28 @@ const upload = multer({
     ) {
       cb(null, true);
     } else {
-      cb(new Error("Only .jpg, .png, .jpeg formats are allowed"));
+      cb(null, false);
+      return cb(new Error("Only .jpg, .png, .jpeg formats are allowed"));
     }
   },
 });
 
 // default error handler
 // catch multer error
+
+app.use((err, req, res, next) => {
+  if (err) {
+    if (err instanceof multer.MulterError) {
+      res.status(500).send("There was an upload error");
+    } else {
+      res.status(500).send(err.message);
+    }
+  } else {
+    res.send("success");
+  }
+
+  next();
+});
 
 // @ts-ignore
 app.get("/", (req, res) => {
@@ -81,7 +94,6 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.hc4xz.mongodb.net/?retryWrites=true&w=majority`;
 
 const client = new MongoClient(uri, {
- 
   useNewUrlParser: true,
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
@@ -93,7 +105,7 @@ const verifyJWT = (req, res, next) => {
     return res.status(401).send({ message: "Unauthorized", code: 401 });
   }
   const token = authHeader.split(" ")[1];
- 
+
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
       return res.status(403).send({ message: "forbidden", code: 403 });
@@ -111,7 +123,7 @@ async function run() {
     const loginCollection = client.db("expressbiz").collection("login");
     const servicesCollection = client.db("expressbiz").collection("services");
     const quoteCollection = client.db("expressbiz").collection("quote");
-   
+
     const usersCollection = client.db("expressbiz").collection("users");
     const reviewCollection = client.db("expressbiz").collection("review");
     const paymentCollection = client.db("expressbiz").collection("payment");
@@ -124,7 +136,7 @@ async function run() {
       const requesterAccount = await registerCollection.findOne({
         email: requester,
       });
-     
+
       if (requesterAccount.role === "admin") {
         next();
       } else {
@@ -133,7 +145,7 @@ async function run() {
     };
 
     // 1.register routes
-   
+
     app.get("/register", async (req, res) => {
       const result = await registerCollection.find({}).toArray();
       res.send(result);
@@ -144,11 +156,11 @@ async function run() {
       const email = req.body.email;
       const confirmPassword = req.body.confirmPassword;
       const saltRounds = 10;
-     
+
       const securePassword = bcrypt.hash(
         confirmPassword,
         saltRounds,
-       
+
         async function (err, hash) {
           // Store hash in your password DB.
 
@@ -172,7 +184,7 @@ async function run() {
             // console.log('result', result)
 
             // giving every register user a jwt
-           
+
             const token = jwt.sign({ email: email }, process.env.JWT_SECRET, {
               expiresIn: "1h",
             });
@@ -185,7 +197,7 @@ async function run() {
 
     app.get("/register/:id", async (req, res) => {
       const id = req.params.id;
-     
+
       const query = { _id: ObjectId(id) };
       const result = await registerCollection.findOne(query);
       res.send(result);
@@ -198,7 +210,6 @@ async function run() {
       const body = req.body;
       // console.log("first", id, req.body);
 
-     
       const query = { _id: ObjectId(id) };
       const options = { upsert: true };
       const updateDoc = {
@@ -215,9 +226,70 @@ async function run() {
       res.send(result);
     });
 
+    // change-password
+    app.patch("/change-password/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const body = req.body;
+        const email = req.body.email;
+        const oldPassword = req.body.oldPassword;
+        const confirmPassword = req.body.confirmPassword;
+        const saltRounds = 10;
+        const userEmail = await registerCollection.findOne({
+          email: email,
+        });
+        if (userEmail) {
+          const id = userEmail._id;
+          const isMatched = bcrypt.compare(
+            oldPassword,
+            userEmail.password,
+            (err, result) => {
+              console.log("result", result);
+              if (result) {
+                // result true  => old password matched
+                const changeNewPassword = bcrypt.hash(
+                  confirmPassword,
+                  saltRounds,
+                  async function (err, hash) {
+                    // Store hash in your password DB.
+                    const hashPassword = hash;
+                    // send new password in db
+                    const query = { _id: ObjectId(id) };
+                    const options = { upsert: true };
+                    const updateDoc = {
+                      $set: {
+                        password: hashPassword,
+                      },
+                    };
+                    const result = await registerCollection.updateOne(
+                      query,
+                      updateDoc,
+                      options
+                    );
+
+                    res.send(result);
+                  }
+                );
+              } else {
+                res.status(403).send({
+                  response: "Your Old password is not matched, Try Correctly",
+                  code: 403,
+                });
+              }
+            }
+          );
+        } else {
+          res.status(401).send({ error: "Authentication Error", code: 401 });
+        }
+      } catch (error) {
+        console.log("error", error);
+        // res.status(400).send({error: error.message});
+      }
+    });
+
     app.delete("/register/:id", async (req, res) => {
       const id = req.params.id;
-     
+
       const query = { _id: ObjectId(id) };
       const result = await registerCollection.deleteOne(query);
       res.send(result);
@@ -233,12 +305,12 @@ async function run() {
           const name = req.body.name;
           const number = req.body.number;
           const bio = req.body.bio;
-         
-          const profileImage = req.file.filename;
-         
+
+          const profileImage = req.file.path;
+
           const path = req.file.path;
           const id = req.params.id;
-         
+
           const query = { _id: ObjectId(id) };
           const options = { upsert: true };
           const updateDoc = {
@@ -264,7 +336,7 @@ async function run() {
     );
 
     // 2.login routes
-   
+
     app.get("/login", async (req, res) => {
       const result = await loginCollection.find({}).toArray();
       res.send(result);
@@ -284,11 +356,11 @@ async function run() {
         if (userEmail) {
           const id = userEmail._id;
           // console.log('userEmail', userEmail._id)
-         
+
           const isMatched = bcrypt.compare(
             password,
             userEmail.password,
-           
+
             (err, result) => {
               // console.log("result", result);
               if (result) {
@@ -296,7 +368,7 @@ async function run() {
                 // giving every user jwt token
                 const token = jwt.sign(
                   { email: email },
-                 
+
                   process.env.JWT_SECRET,
                   {
                     expiresIn: "1h",
@@ -326,7 +398,7 @@ async function run() {
     });
 
     /// 3. services routes
-   
+
     app.get("/services", async (req, res) => {
       const result = await servicesCollection.find({}).toArray();
       res.send(result);
@@ -334,27 +406,32 @@ async function run() {
 
     app.get("/services/:id", async (req, res) => {
       const id = req.params.id;
-     
+
       const query = { _id: ObjectId(id) };
       const result = await servicesCollection.findOne(query);
       res.send(result);
     });
 
-   
     app.post("/services", upload.single("serviceImage"), async (req, res) => {
-      console.log(req.file, req.body);
+      const result = await servicesCollection.insertOne({
+        title: req.body.title,
+        description: req.body.description,
+        image: req.file.path,
+      });
+
+      res.send(result);
     });
 
     app.delete("/services/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
-     
+
       const query = { _id: ObjectId(id) };
       const result = await servicesCollection.deleteOne(query);
       res.send(result);
     });
 
     // 4. Quote  routes
-   
+
     app.get("/quote", async (req, res) => {
       const result = await quoteCollection.find({}).toArray();
       res.send(result);
@@ -362,7 +439,7 @@ async function run() {
 
     app.get("/quote/:id", async (req, res) => {
       const id = req.params.id;
-     
+
       const query = { _id: ObjectId(id) };
       const result = await quoteCollection.findOne(query);
       res.send(result);
@@ -375,14 +452,14 @@ async function run() {
 
     app.delete("/quote/:id", async (req, res) => {
       const id = req.params.id;
-     
+
       const query = { _id: ObjectId(id) };
       const result = await quoteCollection.deleteOne(query);
       res.send(result);
     });
 
     // 5. create shipping routes
-   
+
     app.get("/shipping", async (req, res) => {
       const result = await createShippingCollection.find({}).toArray();
       res.send(result);
@@ -396,7 +473,7 @@ async function run() {
 
     app.get("/shipping/:id", async (req, res) => {
       const id = req.params.id;
-     
+
       const query = { _id: ObjectId(id) };
       const result = await createShippingCollection.findOne(query);
       res.send(result);
@@ -405,7 +482,7 @@ async function run() {
     app.patch("/shipping/:id", async (req, res) => {
       const id = req.params.id;
       const payment = req.body;
-     
+
       const filter = { _id: ObjectId(id) };
       const updateDoc = {
         $set: {
@@ -415,9 +492,9 @@ async function run() {
       };
 
       // send email for their transaction
-     
+
       const result = await paymentCollection.insertOne(payment);
-     
+
       const updatedShipping = await createShippingCollection.updateOne(
         filter,
         updateDoc
@@ -427,14 +504,14 @@ async function run() {
 
     app.delete("/shipping/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
-     
+
       const query = { _id: ObjectId(id) };
       const result = await createShippingCollection.deleteOne(query);
       res.send(result);
     });
 
     // 6. user routes
-   
+
     app.get("/users", verifyJWT, async (req, res) => {
       const result = await registerCollection.find({}).toArray();
       res.send(result);
@@ -466,7 +543,6 @@ async function run() {
 
     // 7. review routes
 
-   
     app.get("/review", async (req, res) => {
       const result = await reviewCollection.find({}).toArray();
       res.send(result);
@@ -480,14 +556,14 @@ async function run() {
 
     app.delete("/review/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
-     
+
       const query = { _id: ObjectId(id) };
       const result = await reviewCollection.deleteOne(query);
       res.send(result);
     });
 
     // 8. payment routes
-   
+
     app.get("/payment", async (req, res) => {
       const result = await paymentCollection.find({}).toArray();
       res.send(result);
@@ -499,7 +575,7 @@ async function run() {
       console.log("service", service);
       const price = service.price;
       console.log("price", price);
-     
+
       const price1 = 200;
       const amount = price * 100;
       const paymentIntent = await stripe.paymentIntents.create({
@@ -514,7 +590,7 @@ async function run() {
     app.get("/admin/:email", async (req, res) => {
       const email = req.params.email;
       const user = await registerCollection.findOne({ email: email });
-     
+
       const isAdmin = user.role === "admin";
       res.send({ admin: isAdmin });
     });
@@ -530,6 +606,11 @@ async function run() {
       };
       const result = await registerCollection.updateOne(filter, updateDoc);
       res.send(result);
+    });
+
+    // +++++++++++Forgot Password++++++++++++
+    app.post("/forgotpassword", async (req, res) => {
+      res.send("Forgot Password");
     });
 
     // LAST +++++++++++++++++++++++++++++++++++++++++
