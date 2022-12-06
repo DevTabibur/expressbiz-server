@@ -4,6 +4,10 @@ const path = require("path");
 // @ts-ignore
 const bodyParser = require("body-parser");
 const app = express();
+const ejs = require("ejs");
+app.set("view engine", "ejs");
+// to get ejs files data
+app.use(express.urlencoded({extended: false}))
 const PORT = process.env.PORT || 5000;
 // @ts-ignore
 const url = "http://localhost:5000/";
@@ -609,8 +613,93 @@ async function run() {
     });
 
     // +++++++++++Forgot Password++++++++++++
-    app.post("/forgotpassword", async (req, res) => {
-      res.send("Forgot Password");
+    // generate the reset token link
+    app.post("/forgot-password", async (req, res) => {
+      const { email } = req.body;
+      try {
+        const userEmail = await registerCollection.findOne({
+          email: email,
+        });
+
+        if (!userEmail) {
+          return res.json({ status: "User not Exist!" });
+        }
+        const secret = process.env.JWT_SECRET + userEmail.password;
+        const token = jwt.sign(
+          { email: userEmail.email, id: userEmail._id },
+          secret,
+          {
+            expiresIn: "5m",
+          }
+        );
+        const link = `http://localhost:5000/reset-password/${userEmail._id}/${token}`;
+        console.log("link", link);
+      } catch (err) {
+        console.log("err", err);
+      }
+      // res.send("Forgot Password");
+    });
+
+    // checking user id and token is proper or not
+    app.get("/reset-password/:id/:token", async (req, res) => {
+      const { id, token } = req.params;
+      // we need to verify id and token from params with our database
+      const userEmail = await registerCollection.findOne({
+        _id: ObjectId(id),
+      });
+
+      if (!userEmail) {
+        return res.json({ status: "User not Exist!" });
+      }
+      const secret = process.env.JWT_SECRET + userEmail.password;
+
+      try {
+        // here is the verify ==> true
+        const verify = jwt.verify(token, secret);
+        res.render("index.ejs", { email: verify.email });
+        // res.send("Verified");
+      } catch (err) {
+        console.log("err", err.message);
+        // res.send("Not verified");
+      }
+    });
+
+    app.post("/reset-password/:id/:token", async (req, res) => {
+      const { id, token } = req.params;
+      const { password } = req.body;
+      // we need to verify id and token from params with our database
+      const userEmail = await registerCollection.findOne({
+        _id: ObjectId(id),
+      });
+
+      if (!userEmail) {
+        return res.json({ status: "User not Exist!" });
+      }
+      const secret = process.env.JWT_SECRET + userEmail.password;
+
+      try {
+        // here is the verify ==> true
+        const verify = jwt.verify(token, secret);
+        // res.render("index.ejs", { email: verify.email });
+
+        // lets hash the password
+        const encryptPassword = await bcrypt.hash(password, 10);
+        // update user new password with checking id
+        await registerCollection.updateOne(
+          { _id: ObjectId(id) },
+          {
+            $set: {
+              password: encryptPassword,
+            },
+          }
+        );
+        res.json({ status: "password updated" });
+      } catch (err) {
+        // here is the verify error ==> false
+        console.log("err", err.message);
+        // res.send("Not verified");
+        res.json({ status: "something went wrong" });
+      }
     });
 
     // LAST +++++++++++++++++++++++++++++++++++++++++
