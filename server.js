@@ -17,7 +17,6 @@ const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const UPLOADS_FOLDER = "./upload";
 // stripe for payment
-// @ts-ignore
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 // middleware
