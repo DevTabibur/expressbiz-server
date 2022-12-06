@@ -7,10 +7,8 @@ const app = express();
 const ejs = require("ejs");
 app.set("view engine", "ejs");
 // to get ejs files data
-app.use(express.urlencoded({extended: false}))
+app.use(express.urlencoded({ extended: false }));
 const PORT = process.env.PORT || 5000;
-// @ts-ignore
-const url = "http://localhost:5000/";
 require("dotenv").config();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -646,17 +644,16 @@ async function run() {
       const userEmail = await registerCollection.findOne({
         _id: ObjectId(id),
       });
-
       if (!userEmail) {
         return res.json({ status: "User not Exist!" });
       }
       const secret = process.env.JWT_SECRET + userEmail.password;
-
       try {
-        // here is the verify ==> true
         const verify = jwt.verify(token, secret);
-        res.render("index.ejs", { email: verify.email });
-        // res.send("Verified");
+        res.render("index.ejs", {
+          email: verify.email,
+          status: "Not Verified",
+        });
       } catch (err) {
         console.log("err", err.message);
         // res.send("Not verified");
@@ -677,10 +674,7 @@ async function run() {
       const secret = process.env.JWT_SECRET + userEmail.password;
 
       try {
-        // here is the verify ==> true
         const verify = jwt.verify(token, secret);
-        // res.render("index.ejs", { email: verify.email });
-
         // lets hash the password
         const encryptPassword = await bcrypt.hash(password, 10);
         // update user new password with checking id
@@ -692,10 +686,11 @@ async function run() {
             },
           }
         );
-        res.json({ status: "password updated" });
+
+        return res.render("index", { email: verify.email, status: "verified" });
       } catch (err) {
         // here is the verify error ==> false
-        console.log("err", err.message);
+        console.log("err", err);
         // res.send("Not verified");
         res.json({ status: "something went wrong" });
       }
