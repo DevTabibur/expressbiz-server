@@ -13,6 +13,8 @@ require("dotenv").config();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
+const nodemailer = require("nodemailer");
+
 const UPLOADS_FOLDER = "./upload";
 // stripe for payment
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -630,9 +632,34 @@ async function run() {
           }
         );
         const link = `http://localhost:5000/reset-password/${userEmail._id}/${token}`;
-        console.log("link", link);
+
+        var transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: "tobiburrohman2@gmail.com",
+            pass: process.env.NODE_MAILER_PASS,
+          },
+        });
+
+        var mailOptions = {
+          from: "tobiburrohman2@gmail.com",
+          to: email,
+          subject: "Reset Password",
+          text: link,
+        };
+
+        transporter.sendMail(mailOptions, function (error, info) {
+          if (error) {
+            console.log(error);
+          } else {
+            // console.log("Email sent: " + info.response);
+            res.status(200).json({ status: "Email was sent!", code: 200 });
+          }
+        });
+
+        // console.log("link", link);
       } catch (err) {
-        console.log("err", err);
+        // console.log("err", err);
       }
       // res.send("Forgot Password");
     });
