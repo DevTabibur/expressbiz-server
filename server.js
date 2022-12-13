@@ -189,7 +189,7 @@ async function run() {
             // giving every register user a jwt
 
             const token = jwt.sign({ email: email }, process.env.JWT_SECRET, {
-              expiresIn: "1h",
+              expiresIn: "5h",
             });
 
             return res.send({ result, accessToken: token });
@@ -374,7 +374,7 @@ async function run() {
 
                   process.env.JWT_SECRET,
                   {
-                    expiresIn: "1h",
+                    expiresIn: "5h",
                   }
                 );
                 res.status(200).send({
@@ -417,6 +417,7 @@ async function run() {
 
     app.post("/services", upload.single("serviceImage"), async (req, res) => {
       const result = await servicesCollection.insertOne({
+        email: req.body.email,
         title: req.body.title,
         description: req.body.description,
         image: req.file.path,
@@ -468,13 +469,13 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/shipping", async (req, res) => {
+    app.post("/shipping", verifyJWT, async (req, res) => {
       // console.log("create-shipping", req.body);
       const result = await createShippingCollection.insertOne(req.body);
       res.send(result);
     });
 
-    app.get("/shipping/:id", async (req, res) => {
+    app.get("/shipping/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
 
       const query = { _id: ObjectId(id) };
@@ -485,7 +486,7 @@ async function run() {
     app.patch("/shipping/:id", async (req, res) => {
       const id = req.params.id;
       const payment = req.body;
-
+      console.log('email', payment.email)
       const filter = { _id: ObjectId(id) };
       const updateDoc = {
         $set: {
@@ -495,6 +496,29 @@ async function run() {
       };
 
       // send email for their transaction
+      // var transporter = nodemailer.createTransport({
+      //   service: "gmail",
+      //   auth: {
+      //     user: "tobiburrohman2@gmail.com",
+      //     pass: process.env.NODE_MAILER_PASS,
+      //   },
+      // });
+
+      // var mailOptions = {
+      //   from: "tobiburrohman2@gmail.com",
+      //   to: payment.email,
+      //   subject: "Payment Transaction Information",
+      //   text: updateDoc,
+      // };
+
+      // transporter.sendMail(mailOptions, function (error, info) {
+      //   if (error) {
+      //     console.log(error);
+      //   } else {
+      //     // console.log("Email sent: " + info.response);
+      //     res.status(200).json({ status: "Email was sent!", code: 200 });
+      //   }
+      // });
 
       const result = await paymentCollection.insertOne(payment);
 
@@ -507,7 +531,6 @@ async function run() {
 
     app.delete("/shipping/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
-
       const query = { _id: ObjectId(id) };
       const result = await createShippingCollection.deleteOne(query);
       res.send(result);
@@ -539,7 +562,7 @@ async function run() {
 
       // // giving every user jwt token
       // const token = jwt.sign({ email: email }, process.env.JWT_SECRET, {
-      //   expiresIn: "1h",
+      //   expiresIn: "5h",
       // });
       res.send(result);
     });
@@ -559,7 +582,6 @@ async function run() {
 
     app.delete("/review/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
-
       const query = { _id: ObjectId(id) };
       const result = await reviewCollection.deleteOne(query);
       res.send(result);
@@ -574,12 +596,7 @@ async function run() {
 
     // payment post method
     app.post("/create-payment-intent", verifyJWT, async (req, res) => {
-      const service = req.body;
-      console.log("service", service);
-      const price = service.price;
-      console.log("price", price);
-
-      const price1 = 200;
+      const { price } = req.body;
       const amount = price * 100;
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amount,
