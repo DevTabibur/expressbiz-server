@@ -126,7 +126,6 @@ async function run() {
     const loginCollection = client.db("expressbiz").collection("login");
     const servicesCollection = client.db("expressbiz").collection("services");
     const quoteCollection = client.db("expressbiz").collection("quote");
-
     const usersCollection = client.db("expressbiz").collection("users");
     const reviewCollection = client.db("expressbiz").collection("review");
     const paymentCollection = client.db("expressbiz").collection("payment");
@@ -486,7 +485,6 @@ async function run() {
     app.patch("/shipping/:id", async (req, res) => {
       const id = req.params.id;
       const payment = req.body;
-      console.log('email', payment.email)
       const filter = { _id: ObjectId(id) };
       const updateDoc = {
         $set: {
