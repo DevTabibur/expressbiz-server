@@ -27,11 +27,10 @@ app.listen(port, () => {
 // const bcrypt = require("bcrypt");
 // const jwt = require("jsonwebtoken");
 
-// const nodemailer = require("nodemailer");
 
 
-// // stripe for payment
-// const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
+
 
 // // middleware
 // app.use(cors());
@@ -564,16 +563,16 @@ app.listen(port, () => {
 //     });
 
 //     // payment post method
-//     app.post("/create-payment-intent", verifyJWT, async (req, res) => {
-//       const { price } = req.body;
-//       const amount = price * 100;
-//       const paymentIntent = await stripe.paymentIntents.create({
-//         amount: amount,
-//         currency: "usd",
-//         payment_method_types: ["card"],
-//       });
-//       res.send({ clientSecret: paymentIntent.client_secret });
-//     });
+    // app.post("api/v1/payment/create-payment-intent", verifyJWT, async (req, res) => {
+    //   const { price } = req.body;
+    //   const amount = price * 100;
+    //   const paymentIntent = await stripe.paymentIntents.create({
+    //     amount: amount,
+    //     currency: "usd",
+    //     payment_method_types: ["card"],
+    //   });
+    //   res.send({ clientSecret: paymentIntent.client_secret });
+    // });
 
 //     // check admin  for useAdmin hooks
 //     app.get("/admin/:email", async (req, res) => {

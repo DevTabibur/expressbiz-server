@@ -8,6 +8,8 @@ const errorHandler = require("./middleware/errorHandler");
 const usersRoutes = require("./routes/v1/users.routes");
 const productRoutes = require("./routes/v1/products.routes");
 const reviewsRoutes = require("./routes/v1/reviews.routes");
+const shippingRoutes = require("./routes/v1/shipping.routes");
+const paymentRoutes = require("./routes/v1/payment.routes");
 
 // middleware
 app.use(cors());
@@ -21,7 +23,8 @@ app.use(express.static("./upload"));
 app.use("/api/v1/user", usersRoutes);
 app.use("/api/v1/products", productRoutes);
 app.use("/api/v1/reviews", reviewsRoutes);
-
+app.use("/api/v1/shipping", shippingRoutes);
+app.use("/api/v1/payment", paymentRoutes);
 
 app.get("/", async (req, res) => {
   res.send("Hello WORLD This is a CREATIVE AGENCY SERVER");

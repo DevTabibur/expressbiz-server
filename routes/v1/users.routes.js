@@ -11,8 +11,11 @@ router
 
 router.route("/login").post(userController.login);
 router.get("/me", verifyToken, userController.getMe);
+router.route("/register/admin/:email").get(userController.getAUserByMail);
 
-router.route("/register/change-password/:id").patch(userController.changePassword);
+router
+  .route("/register/change-password/:id")
+  .patch(userController.changePassword);
 
 router
   .route("/:id")

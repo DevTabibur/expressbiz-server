@@ -108,6 +108,26 @@ module.exports.getAUserByID = async (req, res, next) => {
   }
 };
 
+module.exports.getAUserByMail = async (req, res, next) => {
+  try {
+    const { email } = req.params;
+    const result = await userService.findAUserByMail(email);
+    res.status(200).json({
+      status: "success",
+      code: 200,
+      message: "Successfully getting this user",
+      data: result,
+    });
+  } catch (error) {
+    res.status(400).json({
+      status: "failed",
+      code: 400,
+      message: "Couldn't get this user",
+      error: error.message,
+    });
+  }
+};
+
 module.exports.registerUser = async (req, res, next) => {
   try {
     const result = await userService.registerUserService(req.body);
