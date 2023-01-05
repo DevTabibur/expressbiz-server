@@ -20,11 +20,12 @@ router
 router
   .route("/:id")
   // .get(userController.getAUserByID)
-  .delete(userController.deleteAUserByID);
+  
 
 router
   .route("/register/:id")
   .get(userController.getAUserByID)
-  .put(uploader.single("imageURL"), userController.UpdateProfileById);
+  .put(uploader.single("imageURL"), userController.UpdateProfileById)
+  .delete(userController.deleteAUserByID);
 
 module.exports = router;

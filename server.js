@@ -19,13 +19,12 @@ app.listen(port, () => {
 // // @ts-ignore
 // const bodyParser = require("body-parser");
 // const app = express();
-// const ejs = require("ejs");
-// app.set("view engine", "ejs");
+
 
 // const PORT = process.env.PORT || 5000;
 // require("dotenv").config();
 // const bcrypt = require("bcrypt");
-// const jwt = require("jsonwebtoken");
+
 
 
 

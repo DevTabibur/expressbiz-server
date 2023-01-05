@@ -6,4 +6,6 @@ router.route("/").get(paymentController.getAllPayment);
 
 router.route("/create-payment-intent").post(paymentController.postPayment);
 
+router.route("/:id").delete(paymentController.deleteAPayment)
+
 module.exports = router;

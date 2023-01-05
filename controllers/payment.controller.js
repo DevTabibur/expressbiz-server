@@ -1,5 +1,6 @@
 //stripe for payment
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const { ObjectId } = require("mongodb");
 const paymentService = require(".././services/payment.service");
 
 module.exports.getAllPayment = async (req, res, next) => {
@@ -41,6 +42,27 @@ module.exports.postPayment = async (req, res, next) => {
       status: "failed",
       code: 400,
       message: "Couldn't post payment",
+      error: error.message,
+    });
+  }
+};
+
+module.exports.deleteAPayment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        status: "failed",
+        code: 400,
+        message: "Id is not valid",
+      });
+    }
+    const result = await paymentService.deleteAPaymentService(id);
+  } catch (error) {
+    res.status(400).json({
+      status: "failed",
+      code: 400,
+      message: "Couldn't delete payment",
       error: error.message,
     });
   }
