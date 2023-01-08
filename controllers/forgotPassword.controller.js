@@ -31,7 +31,7 @@ module.exports.postForgotPassword = async (req, res, next) => {
       expiresIn: "5m",
     });
 
-    const link = `http://localhost:5000/api/v1/reset-password/${userExists._id}/${token}`;
+    const link = `https://expressbiz-server-re-deploy.onrender.com/api/v1/reset-password/${userExists._id}/${token}`;
 
     // send link with gmail
     var transporter = nodemailer.createTransport({
