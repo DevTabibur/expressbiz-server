@@ -1,3 +1,4 @@
+## ExpressBiz Web site
 ## install
 1. npm install --save stripe
 2. npm install --save multer
@@ -6,6 +7,13 @@
 5. npm install mongoose --save
 6. npm i colors
 7. npm i validator
-## problem
-1. payment korar time e front theke payment er data neya lagbe, ekhane ami backend theke just test korar jonne 1 ta payment data disi..oita pore solve korte hbei..
-2. index.ejs ta design and password validation baki ase.
+
+
+
+## MongoDB
+N.B => I'm keeping MongoDB info here for update my project in future. But in realtime project, I'm keeping it safe. Thank You.
+1. user: expressbiz
+2. password: Htdv9KXIYhl9NAgP
+
+
+

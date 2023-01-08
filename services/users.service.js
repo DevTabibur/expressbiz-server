@@ -1,6 +1,14 @@
 const User = require("../Models/users.model");
 const bcrypt = require("bcryptjs");
 
+module.exports.getAdminService = async (email) => {
+  return await User.findOne({ email });
+};
+
+module.exports.makeUserAdminService = async (email) => {
+  return User.updateOne({ email: email }, { $set: { role: "admin" } });
+};
+
 module.exports.findAUserByMail = async (email) => {
   return await User.findOne({ email });
 };

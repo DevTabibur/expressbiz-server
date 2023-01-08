@@ -5,8 +5,29 @@ const User = require("../Models/users.model");
 const userService = require("../services/users.service");
 const generateToken = require("../utils/generateToken");
 
+module.exports.getAdmin = async(req, res, next) =>{
+  try {
+    const { email } = req.params;
+    const result = await userService.getAdminService(email);
+    res.status(200).json({
+      status: "success",
+      code: 200,
+      message: "successfully getting an Admin",
+      data: result,
+    });
+  } catch (error) {
+    res.status(400).json({
+      status: "failed",
+      code: 400,
+      message: "Couldn't get an Admin",
+      error: error.message,
+    });
+  }
+}
+
 module.exports.getMe = async (req, res, next) => {
   try {
+    // decoded token is  here req.user
     const userExists = await userService.findAUserByMail(req.user?.email);
     res.status(200).json({
       status: "success",
@@ -108,21 +129,22 @@ module.exports.getAUserByID = async (req, res, next) => {
   }
 };
 
-module.exports.getAUserByMail = async (req, res, next) => {
+module.exports.makeUserAdmin = async (req, res, next) => {
   try {
     const { email } = req.params;
-    const result = await userService.findAUserByMail(email);
-    res.status(200).json({
-      status: "success",
-      code: 200,
-      message: "Successfully getting this user",
-      data: result,
-    });
+    console.log('makeUserAdmin', email)
+    const result = await userService.makeUserAdminService(email);
+    // res.status(200).json({
+    //   status: "success",
+    //   code: 200,
+    //   message: "Successfully make this user an ADMIN",
+    //   data: result,
+    // });
   } catch (error) {
     res.status(400).json({
       status: "failed",
       code: 400,
-      message: "Couldn't get this user",
+      message: "Couldn't make an Admin",
       error: error.message,
     });
   }
@@ -138,12 +160,12 @@ module.exports.registerUser = async (req, res, next) => {
       message: "User is registered successfully",
       data: { result, token },
     });
-  } catch (err) {
+  } catch (error) {
     res.status(400).json({
       status: "failed",
       code: 400,
       message: "Couldn't register user",
-      err: err,
+      err: error.message,
     });
   }
 };
@@ -284,7 +306,7 @@ module.exports.changePassword = async (req, res, next) => {
       });
     }
     const isPasswordMatched = userExists.comparePassword(
-      data.confirmPassword,
+      data.oldPassword,
       userExists.password
     );
     if (!isPasswordMatched) {

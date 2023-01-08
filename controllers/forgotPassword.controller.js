@@ -2,11 +2,6 @@ const jwt = require("jsonwebtoken");
 const userService = require("../services/users.service");
 const nodemailer = require("nodemailer");
 
-module.exports.get = async (req, res, next) => {
-  try {
-    console.log("forgot get is hit");
-  } catch (error) {}
-};
 
 // generate the reset token link
 /**

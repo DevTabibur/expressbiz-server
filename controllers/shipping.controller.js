@@ -114,13 +114,10 @@ module.exports.updateShippingAfterPayment = async (req, res, next) => {
         message: "This ID is not valid",
       });
     }
-
     const result = await shippingService.updateShippingAfterPaymentService(
       id,
       payment
     );
-
-
     res.status(200).json({
       status: "success",
       code: 200,
